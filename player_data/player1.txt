@@ -1,0 +1,22 @@
+{
+  "player_id": "player1",
+  "username": "player1",
+  "registration_date": "2024-01-01T00:00:00",
+  "last_login": "2024-01-01T00:00:00",
+  "stats": {
+    "games_played": 0,
+    "games_won": 0,
+    "games_lost": 0,
+    "games_drawn": 0,
+    "win_streak": 0,
+    "max_win_streak": 0,
+    "total_moves": 0,
+    "total_time_played": 0
+  },
+  "preferences": {
+    "theme": "default",
+    "sound_enabled": true,
+    "auto_save_replays": true
+  },
+  "game_history": []
+}
