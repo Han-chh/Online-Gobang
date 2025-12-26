@@ -80,11 +80,12 @@ class Connection:
         while self.is_connected:
             self._peer_ping_lost = True
             msg = json.dumps({"type": "lost_ping"}).encode("utf-8")
+            print(self.peer_ip,self.peer_port)
             self.sock.sendto(msg, (self.peer_ip, self.peer_port))
-            threading.Event().wait(10)
+            threading.Event().wait(1)
             if self._peer_ping_lost:
                 lost_count += 1
-                print("lost "+ lost_count)
+                print("lost "+ str(lost_count))
             else:
                 print("not lost")
             if lost_count >= 3:
@@ -115,7 +116,7 @@ class Connection:
             BoardWindow.chat_box.add_message(message.get("sender"), message.get("msg"),message.get("timestamp"))
         elif message.get("type") == "move":
             # Handle move message
-            BoardWindow.place_stone(message.get("x"), message.get("y"))
+            BoardWindow.place_stone(message.get("x"), message.get("y"),message.get("player"))
             BoardWindow.current_player = BoardWindow.WHITE_PLAYER if message.get("player") == BoardWindow.BLACK_PLAYER else BoardWindow.BLACK_PLAYER
             BoardWindow.board_enabled = True
 
@@ -256,7 +257,7 @@ class Connection:
                 continue
             if response.get("type") == "room_host_response":
                 self.peer_ip = response.get("host_ip")
-                self.peer_port = response.get("host_ports")
+                self.peer_port = response.get("host_port")
                 self.sock.settimeout(None)  # Remove timeout
                 BoardWindow.this_player = GameConfig.BLACK_PLAYER if response.get("host_side") == GameConfig.WHITE_PLAYER else GameConfig.WHITE_PLAYER
                 BoardWindow.step_time = response.get("step_time")

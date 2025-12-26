@@ -26,13 +26,13 @@ HIGHLIGHT_COLOR = (180, 0, 0)
 # ---------------- 棋盘状态 ----------------
 
 board : list[list[int]] = [[0] * BOARD_SIZE for _ in range(BOARD_SIZE)]  # 0 空 1 黑 2 白
-current_player = BLACK_PLAYER  # 1=黑, 2=白, BLACK_PLAYER = 1, WHITE_PLAYER = 2
+current_player = None  # 1=黑, 2=白, BLACK_PLAYER = 1, WHITE_PLAYER = 2
 step_time = 30  # 每步时间，秒
 board_enabled = True
 winner = None
 highlight_piece = None
 room_id = None
-
+this_player = None
 chat_box = None
 
 # ---------------- 初始化 ----------------
@@ -42,8 +42,8 @@ def initialize(connection):
     pygame.display.set_caption("Gobang Board")
     global board, current_player, step_time, board_enabled, winner,highlight_piece
     board = [[0] * BOARD_SIZE for _ in range(BOARD_SIZE)]  # 0 空 1 黑 2 白
-    current_player = BLACK_PLAYER  # 1=黑, 2=白, BLACK_PLAYER = 1, WHITE_PLAYER = 2
-    board_enabled = True
+    current_player = this_player  # 1=黑, 2=白, BLACK_PLAYER = 1, WHITE_PLAYER = 2
+    board_enabled = this_player == BLACK_PLAYER
     winner = None
     highlight_piece = None
     global chat_box, room_id
@@ -153,8 +153,8 @@ def draw_board(surface,chat_box:ChatBox.ChatBox, hover_pos=None,):
     pygame.display.flip()
 
 # draw and update the board with a new piece
-def place_stone(x,y):
-    board[y][x] = current_player
+def place_stone(x,y,player = current_player):
+    board[y][x] = player
     SoundControl.place_sound.play()
     global highlight_piece
     highlight_piece = (x,y)
