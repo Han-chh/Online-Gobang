@@ -409,7 +409,7 @@ while running:
                 if profile_box.is_clicked(MOUSE_POS, event):
                     print("个人资料按钮被点击")
                     # 启动 profile 窗口（tkinter）为独立进程
-                    subprocess.run(["python3", "ProfileWindow.py", player_id])
+                    subprocess.run([sys.executable, "ProfileWindow.py", player_id])
 
                 if sound_box.is_clicked(MOUSE_POS, event):
                     print("声音设置按钮被点击")

@@ -63,7 +63,7 @@
 ### 使用方法
 1. **环境准备**：
    - 安装Python 3.x
-   - 安装依赖包：`pip install pygame pillow`
+   - 安装依赖包：`pip install pygame`
    - 确保防火墙允许UDP端口5000通信
 
 2. **启动游戏**：
@@ -176,7 +176,6 @@
 
 ### 第三方Python包
 - **pygame**：游戏图形界面和事件处理
-- **pillow (PIL)**：图像处理（头像裁剪等）
 
 ### 关于pygame的吐槽
 这个项目虽然主要由pygame实现，但pygame作为游戏开发库，对开发者来说有着巨大的不便之处：

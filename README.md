@@ -61,7 +61,7 @@ This is a network-based Gobang (Five-in-a-Row) game project built with Python an
 ### Usage Instructions
 1. **Environment Setup**:
    - Install Python 3.x
-   - Install dependencies: `pip install pygame pillow`
+   - Install dependencies: `pip install pygame
    - Ensure firewall allows UDP port 5000 communication
 
 2. **Starting the Game**:
@@ -174,7 +174,6 @@ The entire flow demonstrates the characteristics of P2P network architecture: de
 
 ### Third-party Python Packages
 - **pygame**: Game graphics interface and event handling
-- **pillow (PIL)**: Image processing (avatar cropping, etc.)
 
 ### Complaints About pygame
 Although this project is primarily implemented with pygame, pygame as a game development library has significant inconveniences for developers:
