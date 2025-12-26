@@ -1,7 +1,6 @@
 import subprocess
 import sys
 from Connection import Connection
-import GameConfig
 import GameLogic
 from GameConfig import *
 from UIComponents import *
@@ -21,6 +20,7 @@ JOIN_ROOM_DIALOG_TITLE = "Join a room"
 JOIN_LOADING_DIALOG_TITLE = "Joining Room"
 WAITING_DIALOG_TITLE = f"Room {BoardWindow.room_id}"
 CREATE_ROOM_FAILED_DIALOG_TITLE = "Invalid Room Settings"
+ROOM_VERIFICATION_TITLE = "Room Verification"
 
 
 # UI constants
@@ -104,16 +104,15 @@ hover_pos = None
 
 
 play_bgm()
-
+i = 0
 while running:
     # --- Event Handling ---
-    
     if myDialog.visible:
         set_buttons_enabled(mainUI_buttons, False)
     else:
         set_buttons_enabled(mainUI_buttons, True)
-
     for event in pygame.event.get():
+        
         if event.type == pygame.QUIT:
             if current_UI == MAIN_UI:
                 running = False
@@ -123,28 +122,37 @@ while running:
                 connection_flag = False
                 initialize_mainUI()
             break
-
+        
         if current_UI == MAIN_UI:
+            
 
-            # If connected, switch to board UI
-            if connection.is_connected:
-                current_UI = BOARD_UI
-                game_screen: pygame.Surface = BoardWindow.initialize(BoardWindow.chat_box)
-                connection.start()
-                continue
             # 如果对话框可见，优先处理对话框事件
             if myDialog.visible:
                 result = myDialog.handle_event(event)
                 step_time_str = 0
-                if connection.is_timeout:
+                # If connected, switch to board UI
+                if connection.is_connected:
+                    print("fffffff")
+                    myDialog.hide()
+                    current_UI = BOARD_UI
+                    game_screen: pygame.Surface = BoardWindow.initialize(BoardWindow.chat_box)
+                    # connection.start()
+                    continue
+                if myDialog.title == ROOM_VERIFICATION_TITLE:
+                    if connection.has_existing_room:
+                        myDialog = NotificationDialog(main_screen, title=CREATE_ROOM_FAILED_DIALOG_TITLE)
+                        myDialog.show(f"Room {BoardWindow.room_id} already exists")
+                    elif not connection.is_timeout:
+                        continue
+                    else:
+                        myDialog = LoadingDialog(main_screen, title=WAITING_DIALOG_TITLE)
+                        myDialog.show(f"Waiting for opponent...; Settings: step time: {BoardWindow.step_time}s, side: {"black" if BoardWindow.get_this_player() == BLACK_PLAYER else "white"}")
+                        connection.wait_for_joining(BoardWindow.room_id)
+
+                if connection.is_timeout and myDialog.title == JOIN_LOADING_DIALOG_TITLE:
                     myDialog = NotificationDialog(main_screen, title="Notification")
                     myDialog.show("Join room timeout. Please try again.")
                     connection.is_timeout = False
-                    continue
-                if connection.has_existing_room:
-                    myDialog = NotificationDialog(main_screen, title=CREATE_ROOM_FAILED_DIALOG_TITLE)
-                    myDialog.show(f"Room {BoardWindow.room_id} already exists")
-                    connection.has_existing_room = False
                     continue
                 if result == "OK":
                     
@@ -190,20 +198,16 @@ while running:
                         BoardWindow.this_player = BLACK_PLAYER if myDialog.get_selected_color() == "black" else WHITE_PLAYER # type: ignore
                         # wait for opponent to join
                         WAITING_DIALOG_TITLE = f"Room {BoardWindow.room_id}"
-                        myDialog = LoadingDialog(main_screen, title=WAITING_DIALOG_TITLE)
-                        myDialog.show(f"Waiting for opponent...; Settings: step time: {BoardWindow.step_time}s, side: {"black" if BoardWindow.get_this_player() == BLACK_PLAYER else "white"}")
-                        connection.wait_for_joining(BoardWindow.room_id)
-                        # opponent joined
-                        if connection.is_connected:
-                            print("对手已加入房间")
-                            print(connection.peer_ip, connection.peer_port)
-
+                        myDialog = LoadingDialog(main_screen, title=ROOM_VERIFICATION_TITLE)
+                        myDialog.show("Verifing your room...")
+                        connection.existing_room_detection(room_id=BoardWindow.room_id)
+                        
                     if myDialog.visible:
                         continue
                     print("用户点击了确定")
 
                 elif result == "CANCEL":
-                    if myDialog.title == JOIN_LOADING_DIALOG_TITLE or myDialog.title == WAITING_DIALOG_TITLE:
+                    if myDialog.title == JOIN_LOADING_DIALOG_TITLE or myDialog.title == WAITING_DIALOG_TITLE or ROOM_VERIFICATION_TITLE:
                         connection.cancle_waiting()
                     print("用户点击了取消")
                 continue  # 阻止关闭对话框时进行其他事件处理

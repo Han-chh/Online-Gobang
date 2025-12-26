@@ -70,7 +70,7 @@ class Connection:
                 pass
 
     # Private method to get local IP address
-    def __get_local_ip(self):
+    def get_local_ip(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
             # 这里连接一个外网 IP（谷歌 DNS），不会真的发数据
@@ -112,65 +112,81 @@ class Connection:
 
     # detects if there is any existing room with the same id
     # return true if there is an existing room
+    
     def existing_room_detection(self,room_id):
+        threading.Thread(target=self.__existing_room_detection, args=(room_id,), daemon=True).start()
+    
+    def __existing_room_detection(self,room_id):
         BROADCAST_IP = "255.255.255.255"
         self.sock.sendto(json.dumps({
             "type": "existing_room_detection",
             "room_id": room_id,
-            "ip": self.__get_local_ip
+            "ip": self.get_local_ip()
             }).encode("utf-8"), (BROADCAST_IP, self._LOCAL_PORT))
-        timeout = 5.0
+        timeout = 2.0
         start_time = time.time()
+        self.is_timeout = False
         
-        self.sock.settimeout(1.0)
         has_existing_room = False
-        while time.time()-start_time <= timeout:
+        self._waiting = True
+        while time.time()-start_time <= timeout and self._waiting:
+            # print(time.time()-start_time)
+            self.sock.settimeout(0.5)
             try:
                 data, addr = self.sock.recvfrom(1024)
                 response = json.loads(data.decode("utf-8"))
                 if response.get("type") == "existing_room_response":
                     has_existing_room = True
                     break
-
+            except socket.timeout:
+                continue
             except json.JSONDecodeError:
                 continue
-            except socket.timeout:
-                break
         self.sock.settimeout(None)
-        return has_existing_room
+        if time.time()-start_time > timeout:
+            self.is_timeout = True
+        self.has_existing_room = has_existing_room
+        return
 
     def wait_for_joining(self, room_id):
         self._waiting = True
         threading.Thread(target=self.__wait_for_joining, args=(room_id,), daemon=True).start()
     # A while true loop waiting for a peer to join the room with the given room_id
     def __wait_for_joining(self, room_id):
-        if self.existing_room_detection(room_id):
-            self.has_existing_room = True
-            return
-        while True:
-            if not self._waiting:
-                break
-            data, addr = self.sock.recvfrom(1024)
-            response = json.loads(data.decode("utf-8"))
-            if response.get("type") == "join_room" and response.get("room_id") == room_id:
-                self.peer_ip = response.get("ip")
-                self.peer_port = response.get("port")
-                self.sock.sendto(json.dumps({
-                    "type": "room_host_response",
-                    "host_side": BoardWindow.get_this_player(),
-                    "step_time": BoardWindow.step_time,
-                    "host_ip": self.__get_local_ip(),
-                    "host_port": self.local_port
-                }).encode("utf-8"), addr)
-                self.is_connected = True
-            elif response.get("type") == "existing_room_detection":
-                if response.get("room_id") == room_id:
-                    msg = json.dumps({
-                        "type": "existing_room_response",
-                    }).encode("utf-8")
-                    self.sock.sendto(msg, response.get("ip"))
-        self.sock.close()
-        self.is_connected = False
+        
+        while self._waiting and not self.is_connected:
+            self.sock.settimeout(1.0)
+            try:
+                data, addr = self.sock.recvfrom(1024)
+                response = json.loads(data.decode("utf-8"))
+                print(response)
+                if response.get("type") == "join_room" and response.get("room_id") == room_id:
+                    self.peer_ip = response.get("ip")
+                    self.peer_port = response.get("port")
+                    self.sock.sendto(json.dumps({
+                        "type": "room_host_response",
+                        "host_side": BoardWindow.get_this_player(),
+                        "step_time": BoardWindow.step_time,
+                        "host_ip": self.get_local_ip(),
+                        "host_port": self.local_port
+                    }).encode("utf-8"), addr)
+                    self.is_connected = True
+                    print("connnected")
+                    return
+                    
+                elif response.get("type") == "existing_room_detection":
+                    if response.get("room_id") == room_id:
+                        msg = json.dumps({
+                            "type": "existing_room_response",
+                        }).encode("utf-8")
+                        self.sock.sendto(msg, (response.get("ip"),self.local_port))
+            except json.JSONDecodeError:
+                continue
+            except socket.timeout:
+                continue
+        if not self._waiting:
+            self.is_connected = False
+        return
 
     def cancle_waiting(self):
         self._waiting = False
@@ -188,7 +204,7 @@ class Connection:
         message = {
             "type": "join_room",
             "room_id": room_id,
-            "ip": self.__get_local_ip(),
+            "ip": self.get_local_ip(),
             "port": self.local_port
         }
         data = json.dumps(message).encode("utf-8")
@@ -205,6 +221,7 @@ class Connection:
             try:
                 data, addr = self.sock.recvfrom(1024)
             except socket.timeout:
+                self.sock.sendto(data, (self.BROADCAST_IP, PORT))
                 continue
             # prevent JSON decode error
             try:
@@ -212,8 +229,8 @@ class Connection:
             except json.JSONDecodeError:
                 continue
             if response.get("type") == "room_host_response" and response.get("room_id") == room_id:
-                self.peer_ip = addr[0]
-                self.peer_port = addr[1]
+                self.peer_ip = response.get("host_ip")
+                self.peer_port = response.get("host_ports")
                 self.sock.settimeout(None)  # Remove timeout
                 BoardWindow.this_player = GameConfig.BLACK_PLAYER if response.get("host_side") == GameConfig.WHITE_PLAYER else GameConfig.WHITE_PLAYER
                 BoardWindow.step_time = response.get("step_time")
@@ -222,6 +239,7 @@ class Connection:
         self.sock.settimeout(None)  # Remove timeout
         if not self._waiting or self.is_timeout:
             self.is_connected = False
+        return
         
     
     def send_win_message(self, winner):

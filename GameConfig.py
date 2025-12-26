@@ -28,12 +28,5 @@ DARK_RED = (200, 0, 0)
 BLACK_PLAYER = 1
 WHITE_PLAYER = 2
 
-
-class NotificationDialogTypes:
-    notification = "NOTIFICATION"
-    wait = "WAIT"
-    join = "JOIN"
-
-
 # Game info
 this_player = None
