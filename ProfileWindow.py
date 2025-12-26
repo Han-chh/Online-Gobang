@@ -3,13 +3,13 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import json
 import os
-from PIL import Image, ImageTk, ImageDraw
 
 PROFILE_WINDOW_WIDTH = 450
 PROFILE_WINDOW_HEIGHT = 600
 
 
 class ProfileWindow(tk.Tk):
+    DEFAULT_USER_NAME = "player"
     def __init__(self):
         super().__init__()
         self.title("User Profile")
@@ -17,18 +17,18 @@ class ProfileWindow(tk.Tk):
         self.resizable(False, False)
         self.center_window(PROFILE_WINDOW_WIDTH, PROFILE_WINDOW_HEIGHT)
         self.attributes("-topmost", True)
+        self.user_id = self.DEFAULT_USER_NAME
+        self.avatar_text_id = None
 
         # ===== Header =====
-        header_frame = tk.Frame(self, bg="white")
-        header_frame.pack(fill="x", pady=15, padx=20)
+        self.header_frame = tk.Frame(self, bg="white")
+        self.header_frame.pack(fill="x", pady=15, padx=20)
 
         image_dir = Path("Images")
-        avatar = self.make_circle_avatar(image_dir / "DefaultUser.png", size=(70, 70))
-        avatar_label = tk.Label(header_frame, image=avatar, bg="white")
-        avatar_label.image = avatar # type: ignore
-        avatar_label.pack(side="left", padx=(0, 20))
+        self.avatar_canvas = self.make_circle_avatar(self.header_frame, size=(70, 70), text=self.user_id[0])
+        self.avatar_canvas.pack(side="left", padx=(0, 20))
 
-        info_frame = tk.Frame(header_frame, bg="white")
+        info_frame = tk.Frame(self.header_frame, bg="white")
         info_frame.pack(side="left", fill="both", expand=True)
 
         tk.Label(
@@ -73,6 +73,12 @@ class ProfileWindow(tk.Tk):
         dialog.resizable(False, False)
         dialog.attributes("-topmost", True)
 
+        # Center the dialog on the screen
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() - 300) // 2
+        y = (dialog.winfo_screenheight() - 150) // 2  
+        dialog.geometry(f"300x150+{x}+{y}")
+
         tk.Label(dialog, text="Enter new username:", font=("Helvetica", 12)).pack(pady=10)
 
         entry = tk.Entry(dialog, font=("Helvetica", 12))
@@ -81,6 +87,7 @@ class ProfileWindow(tk.Tk):
 
         def save_username():
             new_username = entry.get().strip()
+            self.user_id = new_username
             if not new_username:
                 return
 
@@ -93,6 +100,7 @@ class ProfileWindow(tk.Tk):
                     json.dump(data, f, indent=2, ensure_ascii=False)
 
                 self.player_label.config(text=f"Username: {new_username}")
+                self.update_avatar_text(new_username[0])
                 self.load_player_data()
 
             except Exception as e:
@@ -109,17 +117,15 @@ class ProfileWindow(tk.Tk):
         y = (self.winfo_screenheight() - h) // 2
         self.geometry(f"{w}x{h}+{x}+{y}")
 
-    def make_circle_avatar(self, path, size):
-        try:
-            img = Image.open(path).resize(size).convert("RGBA")
-            mask = Image.new("L", size, 0)
-            draw = ImageDraw.Draw(mask)
-            draw.ellipse((0, 0, *size), fill=255)
-            img.putalpha(mask)
-            return ImageTk.PhotoImage(img)
-        except Exception:
-            img = Image.new("RGBA", size, (180, 180, 180, 255))
-            return ImageTk.PhotoImage(img)
+    def make_circle_avatar(self, parent, size, text):
+        canvas = tk.Canvas(parent, width=size[0], height=size[1], bg="white", highlightthickness=0)
+        canvas.create_oval(2, 2, size[0]-2, size[1]-2, fill="lightblue", outline="gray")
+        self.avatar_text_id = canvas.create_text(size[0]//2, size[1]//2, text=text, font=("Helvetica", 20, "bold"), fill="white")
+        return canvas
+
+    def update_avatar_text(self, text):
+        if self.avatar_text_id is not None:
+            self.avatar_canvas.itemconfig(self.avatar_text_id, text=text)
 
     # ------------------------------------------------------------------
 
@@ -155,8 +161,9 @@ class ProfileWindow(tk.Tk):
 
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
-
+        self.user_id = data.get('username')
         self.player_label.config(text=f"Username: {data.get('username', 'player')}")
+        self.update_avatar_text(self.user_id[0])
 
         self.display_statistics(frame, data)
         self.display_game_history(frame, data)
@@ -165,7 +172,7 @@ class ProfileWindow(tk.Tk):
 
     def create_default_player_data(self):
         data = {
-            "username": "player",
+            "username": self.DEFAULT_USER_NAME,
             "stats": {
                 "games_played": 0,
                 "games_won": 0,
