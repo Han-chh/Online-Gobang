@@ -36,6 +36,7 @@ class ChatBox:
         # 消息记录
         self.messages = []
 
+    # sender: int
     def add_message(self, sender, text,timestamp = datetime.datetime.now().strftime("%H:%M:%S")):
         """添加消息"""
         sys_color = (200, 80, 80)
@@ -53,8 +54,6 @@ class ChatBox:
         wrapped_lines = self.wrap_text(text, self.rect.width * 2)
         for line in wrapped_lines:
             self.messages.append((line, self.text_color))
-
-        self.connection.send_chat_message(sender, text, timestamp)
         # ✅ 自动滚到底部
         self.scroll_offset_y = max(0, len(self.messages) * 22 - (self.rect.height - self.input_height - 60))
 
@@ -95,12 +94,10 @@ class ChatBox:
                     self.chat_flag = BoardWindow.current_player
                     self.action_chat += 1
                     if self.input_text.strip():
-                        if BoardWindow.board_enabled == True:
-                            self.add_message(BoardWindow.get_this_player(), self.input_text)
-                        else:
-                            self.add_message(BoardWindow.get_this_player(), self.input_text)
+                        
+                        self.add_message(BoardWindow.this_player, self.input_text)
 
-                    
+                        self.connection.send_chat_message(BoardWindow.this_player, self.input_text, datetime.datetime.now().strftime("%H:%M:%S"))
                         self.input_text = ""
                         self.input_cursor_offset = 0
                 elif event.key == pygame.K_BACKSPACE:

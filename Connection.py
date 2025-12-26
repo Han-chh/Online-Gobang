@@ -58,6 +58,7 @@ class Connection:
             data, addr = self.sock.recvfrom(1024)
             try:
                 message = json.loads(data.decode("utf-8"))
+                print(message)
                 handle_message(message)
             except json.JSONDecodeError:
                 continue
