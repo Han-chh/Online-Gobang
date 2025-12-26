@@ -111,6 +111,7 @@ while running:
         set_buttons_enabled(mainUI_buttons, False)
     else:
         set_buttons_enabled(mainUI_buttons, True)
+
     for event in pygame.event.get():
         
         if event.type == pygame.QUIT:
@@ -122,7 +123,6 @@ while running:
                 connection_flag = False
                 initialize_mainUI()
             break
-        
         if current_UI == MAIN_UI:
             
 
@@ -132,12 +132,12 @@ while running:
                 step_time_str = 0
                 # If connected, switch to board UI
                 if connection.is_connected:
-                    print("fffffff")
                     myDialog.hide()
                     current_UI = BOARD_UI
                     game_screen: pygame.Surface = BoardWindow.initialize(BoardWindow.chat_box)
                     # connection.start()
                     continue
+                
                 if myDialog.title == ROOM_VERIFICATION_TITLE:
                     if connection.has_existing_room:
                         myDialog = NotificationDialog(main_screen, title=CREATE_ROOM_FAILED_DIALOG_TITLE)

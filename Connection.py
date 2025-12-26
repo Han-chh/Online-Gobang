@@ -3,10 +3,19 @@ import json
 import threading
 import time
 
+import pygame
+
 import BoardWindow
 import GameConfig
 
 import SoundControl
+
+
+
+def thread_done_notification():
+    MY_THREAD_DONE_EVENT = pygame.USEREVENT + 1
+    event = pygame.event.Event(MY_THREAD_DONE_EVENT, {"msg": "thread finished"})
+    pygame.event.post(event)
 
 class Connection:
     # Local UDP settings
@@ -146,6 +155,7 @@ class Connection:
         if time.time()-start_time > timeout:
             self.is_timeout = True
         self.has_existing_room = has_existing_room
+        thread_done_notification()
         return
 
     def wait_for_joining(self, room_id):
@@ -172,7 +182,6 @@ class Connection:
                     }).encode("utf-8"), addr)
                     self.is_connected = True
                     print("connnected")
-                    return
                     
                 elif response.get("type") == "existing_room_detection":
                     if response.get("room_id") == room_id:
@@ -186,6 +195,7 @@ class Connection:
                 continue
         if not self._waiting:
             self.is_connected = False
+        thread_done_notification()
         return
 
     def cancle_waiting(self):
@@ -239,6 +249,7 @@ class Connection:
         self.sock.settimeout(None)  # Remove timeout
         if not self._waiting or self.is_timeout:
             self.is_connected = False
+        thread_done_notification()
         return
         
     
