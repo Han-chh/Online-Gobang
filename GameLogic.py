@@ -24,7 +24,7 @@ def check_win(board, x, y,BOARD_SIZE):
         for b in range(15):
             if board[a][b] == 0:
                 return 0
-
+    # draw
     return 3
 
 

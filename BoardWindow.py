@@ -28,6 +28,8 @@ HIGHLIGHT_COLOR = (180, 0, 0)
 board : list[list[int]] = [[0] * BOARD_SIZE for _ in range(BOARD_SIZE)]  # 0 空 1 黑 2 白
 current_player = None  # 1=黑, 2=白, BLACK_PLAYER = 1, WHITE_PLAYER = 2
 step_time = 30  # 每步时间，秒
+player_step_time = 30  # 己方剩余时间
+opponent_step_time = 30  # 对方剩余时间
 board_enabled = True
 winner = None
 highlight_piece = None
@@ -40,12 +42,14 @@ def initialize(connection):
     pygame.init()
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     pygame.display.set_caption("Gobang Board")
-    global board, current_player, step_time, board_enabled, winner,highlight_piece
+    global board, current_player, step_time, player_step_time, opponent_step_time, board_enabled, winner,highlight_piece
     board = [[0] * BOARD_SIZE for _ in range(BOARD_SIZE)]  # 0 空 1 黑 2 白
     current_player = this_player  # 1=黑, 2=白, BLACK_PLAYER = 1, WHITE_PLAYER = 2
     board_enabled = this_player == BLACK_PLAYER
     winner = None
     highlight_piece = None
+    player_step_time = step_time  # 初始化己方时间
+    opponent_step_time = step_time  # 初始化对方时间
     global chat_box, room_id
     chat_box = ChatBox.ChatBox(x = 640,y=280,width = 200, height = 340,connection=connection)
     chat_box.add_message(SYSTEM,"Game start")
@@ -136,9 +140,17 @@ def draw_board(surface,chat_box:ChatBox.ChatBox, hover_pos=None,):
     pygame.draw.rect(surface, INFO_BG, (info_x, 0, INFO_WIDTH, WINDOW_HEIGHT))
     player_text = font.render(f"Current: {'Black' if current_player == BLACK_PLAYER else 'White'}", True, BLACK)
     
-    step_text = font.render(f"Step time: {step_time}s", True, BLACK)
+    # 己方时间颜色
+    player_time_color = (255, 0, 0) if player_step_time <= 10 else BLACK
+    player_time_text = font.render(f"Your step time: {player_step_time}s", True, player_time_color)
+    
+    # 对方时间颜色
+    opponent_time_color = (255, 0, 0) if opponent_step_time <= 10 else BLACK
+    opponent_time_text = font.render(f"Enemy step time: {opponent_step_time}s", True, opponent_time_color)
+    
     surface.blit(player_text, (info_x + 20, 50))
-    surface.blit(step_text, (info_x + 20, 80))
+    surface.blit(player_time_text, (info_x + 20, 80))
+    surface.blit(opponent_time_text, (info_x + 20, 110))
     if highlight_piece:
         pygame.draw.circle(surface, RED, board_to_pixel(highlight_piece[0],highlight_piece[1]), CELL_SIZE // 2, 3)
     if not board_enabled:
@@ -154,11 +166,13 @@ def draw_board(surface,chat_box:ChatBox.ChatBox, hover_pos=None,):
     pygame.display.flip()
 
 # draw and update the board with a new piece
-def place_stone(x,y,player = current_player):
+def place_stone(x,y,player):
+    print(player)
     board[y][x] = player
     SoundControl.place_sound.play()
     global highlight_piece
     highlight_piece = (x,y)
 
 def get_this_player():
+    global this_player
     return this_player

@@ -27,4 +27,5 @@ DARK_RED = (200, 0, 0)
 # players
 BLACK_PLAYER = 1
 WHITE_PLAYER = 2
+DRAW = 3
 SYSTEM = 0

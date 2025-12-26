@@ -4,13 +4,13 @@
   "registration_date": "2024-01-01T00:00:00",
   "last_login": "2024-01-01T00:00:00",
   "stats": {
-    "games_played": 0,
-    "games_won": 0,
+    "games_played": 1,
+    "games_won": 1,
     "games_lost": 0,
     "games_drawn": 0,
-    "win_streak": 0,
-    "max_win_streak": 0,
-    "total_moves": 0,
+    "win_streak": 1,
+    "max_win_streak": 1,
+    "total_moves": 9,
     "total_time_played": 0
   },
   "preferences": {
@@ -18,5 +18,12 @@
     "sound_enabled": true,
     "auto_save_replays": true
   },
-  "game_history": []
+  "game_history": [
+    {
+      "opponent": "Unknown",
+      "result": "win",
+      "moves_count": 9,
+      "timestamp": "2025-12-26T18:23:31.840825"
+    }
+  ]
 }

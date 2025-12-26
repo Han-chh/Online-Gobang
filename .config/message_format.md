@@ -14,9 +14,9 @@
   {"type": "join_room",
             "room_id": room_id,
             "ip": self.__get_local_ip(),
-            "port": self.local_port}
+            "port": self.local_port,"user_id":user's name}
 - room_response
-  {"type":"room_host_response", "host_side":black or white, "step_time": step_time, ip":host_ip,"port":host_port}
+  {"type":"room_host_response", "host_side":black or white, "step_time": step_time, ip":host_ip,"port":host_port, "user_id": user's name}
 - existing_room_detection
   {"type":"existing_room_detection","room_id":room_id,"ip":ip}
 - existing_room_response

@@ -25,8 +25,10 @@ class Connection:
     
 
     # Peer UDP settings will be set when initializing the Connection
-    def __init__(self):
+    def __init__(self, user_id="player1"):
         print("Initializing Connection...")
+        self.user_id = user_id
+        self.opponent_user_id = None
         self.is_connected = False
         self._peer_ping_lost = False
         self._waiting = True
@@ -39,6 +41,9 @@ class Connection:
         self.sock.bind((self.local_ip, self.local_port))
         self.is_timeout = False
         self.has_existing_room = False
+        self.connection_lost = False
+        self.step_timer_trigger = False
+        self.stop_timer_trigger = False
 
     def disconnect(self):
         self.is_connected = False
@@ -92,8 +97,8 @@ class Connection:
                 print("not lost")
             if lost_count >= 3:
                 # Handle lost connection
-                print("lost connection")
-                pass
+                self.connection_lost = True
+                break  # 退出循环
         thread_done_notification()
         return
 
@@ -121,15 +126,19 @@ class Connection:
             BoardWindow.place_stone(message.get("x"), message.get("y"),message.get("player"))
             BoardWindow.current_player = BoardWindow.WHITE_PLAYER if message.get("player") == BoardWindow.BLACK_PLAYER else BoardWindow.BLACK_PLAYER
             BoardWindow.board_enabled = True
+            # 重置己方时间并触发倒计时
+            BoardWindow.player_step_time = BoardWindow.step_time
+            self.step_timer_trigger = True
+            # 假设 main.py 有 start_step_timer 函数，但这里是 Connection.py，需要调用
+            # 由于是全局，可能需要导入或传递
+            # 暂时注释，稍后处理
 
         elif message.get("type") == "win":
             # Handle win message
             BoardWindow.winner = message.get("winner")
             BoardWindow.board_enabled = False
-            if BoardWindow.get_this_player() == BoardWindow.winner:
-                SoundControl.win_sound.play()
-            else:
-                SoundControl.lose_sound.play()
+            SoundControl.play_win_lose_draw_sound(BoardWindow.this_player,BoardWindow.winner)
+            self.stop_timer_trigger = True
 
         
     # Be called when the game is ready to start.
@@ -151,7 +160,7 @@ class Connection:
             "room_id": room_id,
             "ip": self.get_local_ip()
             }).encode("utf-8"), (BROADCAST_IP, self._LOCAL_PORT))
-        timeout = 2.0
+        timeout = 1.5
         start_time = time.time()
         self.is_timeout = False
         
@@ -190,6 +199,7 @@ class Connection:
                 response = json.loads(data.decode("utf-8"))
                 print(response)
                 if response.get("type") == "join_room":
+                    self.opponent_user_id = response.get("user_id")
                     self.peer_ip = response.get("ip")
                     self.peer_port = response.get("port")
                     self.sock.sendto(json.dumps({
@@ -197,7 +207,8 @@ class Connection:
                         "host_side": BoardWindow.get_this_player(),
                         "step_time": BoardWindow.step_time,
                         "host_ip": self.get_local_ip(),
-                        "host_port": self.local_port
+                        "host_port": self.local_port,
+                        "user_id": self.user_id
                     }).encode("utf-8"), addr)
                     self.is_connected = True
                     print("connnected")
@@ -234,7 +245,8 @@ class Connection:
             "type": "join_room",
             "room_id": room_id,
             "ip": self.get_local_ip(),
-            "port": self.local_port
+            "port": self.local_port,
+            "user_id": self.user_id
         }
         data = json.dumps(message).encode("utf-8")
         self.sock.sendto(data, (self.BROADCAST_IP, PORT))
@@ -258,6 +270,7 @@ class Connection:
             except json.JSONDecodeError:
                 continue
             if response.get("type") == "room_host_response":
+                self.opponent_user_id = response.get("user_id")
                 self.peer_ip = response.get("host_ip")
                 self.peer_port = response.get("host_port")
                 self.sock.settimeout(None)  # Remove timeout

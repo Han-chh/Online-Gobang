@@ -2,6 +2,8 @@
 import pygame
 from pygame import mixer
 
+import GameConfig
+
 GameSound = True
 pygame.init()
 mixer.init()
@@ -23,16 +25,24 @@ place_sound.set_volume(0.5)
 # win and lose
 win_sound = mixer.Sound("Sounds/win.mp3")
 lose_sound = mixer.Sound("Sounds/lose.wav")
+draw_sound = mixer.Sound("Sounds/draw.mp3")
 win_sound.set_volume(0.5)
 lose_sound.set_volume(0.5)
+draw_sound.set_volume(0.5)
 
-all_sounds = [place_sound, win_sound, lose_sound]
+all_sounds = [place_sound, win_sound, lose_sound, draw_sound]
 
-def play_win_lose_sound(this_player, winner):
+def play_win_lose_draw_sound(this_player, winner):
     if winner == this_player:
         win_sound.play()
-    elif winner != this_player:
+    elif winner == GameConfig.DRAW:
+        # pygame.time.wait(3000)  # 等 3 秒
+        
+        draw_sound.play()
+    else:
         lose_sound.play()
+
+
 
 
 

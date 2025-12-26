@@ -7,10 +7,78 @@ from UIComponents import *
 from SoundControl import *
 import BoardWindow
 import time
+import json
+import os
 
 
 #internet connection
-connection = Connection()
+# 程序启动时检查 player_data.txt
+player_data_file = "player_data/player_data.txt"
+os.makedirs("player_data", exist_ok=True)
+if os.path.exists(player_data_file):
+    try:
+        with open(player_data_file, "r", encoding="utf-8") as f:
+            player_data = json.load(f)
+        player_id = player_data.get("username", "player1")
+    except json.JSONDecodeError:
+        player_id = "player1"
+        # 如果文件损坏，创建默认
+        player_data = {
+            "player_id": player_id,
+            "username": player_id,
+            "registration_date": "2024-01-01T00:00:00",
+            "last_login": "2024-01-01T00:00:00",
+            "stats": {
+                "games_played": 0,
+                "games_won": 0,
+                "games_lost": 0,
+                "games_drawn": 0,
+                "win_streak": 0,
+                "max_win_streak": 0,
+                "total_moves": 0,
+                "total_time_played": 0
+            },
+            "preferences": {
+                "theme": "default",
+                "sound_enabled": True,
+                "auto_save_replays": True
+            },
+            "game_history": []
+        }
+        with open(player_data_file, "w", encoding="utf-8") as f:
+            json.dump(player_data, f, indent=2, ensure_ascii=False)
+else:
+    # 创建默认数据
+    player_data = {
+        "player_id": "player1",
+        "username": "player1",
+        "registration_date": "2024-01-01T00:00:00",
+        "last_login": "2024-01-01T00:00:00",
+        "stats": {
+            "games_played": 0,
+            "games_won": 0,
+            "games_lost": 0,
+            "games_drawn": 0,
+            "win_streak": 0,
+            "max_win_streak": 0,
+            "total_moves": 0,
+            "total_time_played": 0
+        },
+        "preferences": {
+            "theme": "default",
+            "sound_enabled": True,
+            "auto_save_replays": True
+        },
+        "game_history": []
+    }
+    with open(player_data_file, "w", encoding="utf-8") as f:
+        json.dump(player_data, f, indent=2, ensure_ascii=False)
+    player_id = player_data.get("username", "player1")
+
+connection = Connection(player_id)
+
+# 移除全局标志，使用 connection 的属性
+connection_lost_shown = False
 
 
 STEP_TIME_DIALOG_TITLE = "Room Settings - Step Time"
@@ -34,10 +102,107 @@ BOARD_UI = 2
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
+
+# 添加定时器事件常量（在其他常量附近）
+STEP_TIMER_EVENT = pygame.USEREVENT + 2
+
+# 添加倒计时启动函数
+def start_step_timer():
+    """
+    启动 step_time 倒计时，根据当前玩家减少相应时间，直到 0。
+    """
+    if BoardWindow.winner is not None:
+        return  # 如果已有赢家，不启动计时器
+    if BoardWindow.current_player == BoardWindow.this_player:
+        if BoardWindow.player_step_time > 0:
+            pygame.time.set_timer(STEP_TIMER_EVENT, 1000)
+        else:
+            # 己方时间到 0
+            BoardWindow.winner = WHITE_PLAYER if BoardWindow.this_player == BLACK_PLAYER else BLACK_PLAYER
+            BoardWindow.board_enabled = False
+    else:
+        if BoardWindow.opponent_step_time > 0:
+            pygame.time.set_timer(STEP_TIMER_EVENT, 1000)
+        else:
+            # 对方时间到 0
+            BoardWindow.winner = BoardWindow.this_player
+            BoardWindow.board_enabled = False
+
+
+def save_game_data(result, opponent="Unknown", moves_count=0):
+    """保存游戏数据到玩家文件"""
+    os.makedirs("player_data", exist_ok=True)
+    
+    # 加载现有数据
+    if os.path.exists(player_data_file):
+        try:
+            with open(player_data_file, "r", encoding="utf-8") as f:
+                player_data = json.load(f)
+        except json.JSONDecodeError:
+            player_data = None
+    else:
+        player_data = None
+    
+    if not player_data:
+        # 创建默认数据
+        player_data = {
+            "player_id": player_id,
+            "username": player_id,
+            "registration_date": "2024-01-01T00:00:00",
+            "last_login": "2024-01-01T00:00:00",
+            "stats": {
+                "games_played": 0,
+                "games_won": 0,
+                "games_lost": 0,
+                "games_drawn": 0,
+                "win_streak": 0,
+                "max_win_streak": 0,
+                "total_moves": 0,
+                "total_time_played": 0
+            },
+            "preferences": {
+                "theme": "default",
+                "sound_enabled": True,
+                "auto_save_replays": True
+            },
+            "game_history": []
+        }
+    
+    # 更新统计
+    stats = player_data["stats"]
+    stats["games_played"] += 1
+    stats["total_moves"] += moves_count
+    
+    if result == "win":
+        stats["games_won"] += 1
+        stats["win_streak"] += 1
+        if stats["win_streak"] > stats["max_win_streak"]:
+            stats["max_win_streak"] = stats["win_streak"]
+    elif result == "loss":
+        stats["games_lost"] += 1
+        stats["win_streak"] = 0
+    elif result == "draw":
+        stats["games_drawn"] += 1
+        stats["win_streak"] = 0
+    
+    # 添加游戏历史
+    from datetime import datetime
+    game_entry = {
+        "opponent": opponent,
+        "result": result,
+        "moves_count": moves_count,
+        "timestamp": datetime.now().isoformat()
+    }
+    player_data["game_history"].append(game_entry)
+    
+    # 保存数据
+    with open(player_data_file, "w", encoding="utf-8") as f:
+        json.dump(player_data, f, indent=2, ensure_ascii=False)
+
+
 def initialize_mainUI():
     main_screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Online Gobang - The Five Stones Legend")
-    this_player = None
     return main_screen
 
 main_screen = initialize_mainUI()
@@ -135,8 +300,9 @@ while running:
                 if connection.is_connected:
                     myDialog.hide()
                     current_UI = BOARD_UI
-                    game_screen: pygame.Surface = BoardWindow.initialize(connection=connection)
+                    game_screen: pygame.Surface = BoardWindow.initialize(connection)
                     connection.start()
+                    start_step_timer()  # 启动倒计时
                     continue
                 
                 if myDialog.title == ROOM_VERIFICATION_TITLE:
@@ -207,6 +373,14 @@ while running:
                         continue
                     print("用户点击了确定")
 
+                elif result == "OK":
+                    if connection_lost_shown:
+                        current_UI = MAIN_UI
+                        connection.disconnect()
+                        connection_lost_shown = False
+                        myDialog.hide()
+                        continue
+
                 elif result == "CANCEL":
                     if myDialog.title == JOIN_LOADING_DIALOG_TITLE or myDialog.title == WAITING_DIALOG_TITLE or ROOM_VERIFICATION_TITLE:
                         connection.cancle_waiting()
@@ -235,7 +409,7 @@ while running:
                 if profile_box.is_clicked(MOUSE_POS, event):
                     print("个人资料按钮被点击")
                     # 启动 profile 窗口（tkinter）为独立进程
-                    subprocess.run(["python3", "ProfileWindow.py"])
+                    subprocess.run(["python3", "ProfileWindow.py", player_id])
 
                 if sound_box.is_clicked(MOUSE_POS, event):
                     print("声音设置按钮被点击")
@@ -252,6 +426,32 @@ while running:
                             s.set_volume(0.5)
         elif current_UI == BOARD_UI:
 
+            # 添加：处理倒计时事件
+            if event.type == STEP_TIMER_EVENT:
+                if BoardWindow.winner is not None:
+                    pygame.time.set_timer(STEP_TIMER_EVENT, 0)  # 停止定时器
+                    continue
+                if BoardWindow.current_player == BoardWindow.this_player:
+                    if BoardWindow.player_step_time > 0:
+                        BoardWindow.player_step_time -= 1
+                    else:
+                        # 己方时间到 0
+                        pygame.time.set_timer(STEP_TIMER_EVENT, 0)
+                        BoardWindow.winner = WHITE_PLAYER if BoardWindow.this_player == BLACK_PLAYER else BLACK_PLAYER
+                        BoardWindow.board_enabled = False
+                        play_win_lose_draw_sound(BoardWindow.this_player, BoardWindow.winner)
+                        connection.send_win_message(BoardWindow.winner)
+                else:
+                    if BoardWindow.opponent_step_time > 0:
+                        BoardWindow.opponent_step_time -= 1
+                    else:
+                        # 对方时间到 0
+                        pygame.time.set_timer(STEP_TIMER_EVENT, 0)
+                        BoardWindow.winner = BoardWindow.this_player
+                        BoardWindow.board_enabled = False
+                        play_win_lose_draw_sound(BoardWindow.this_player, BoardWindow.winner)
+                        connection.send_win_message(BoardWindow.winner)
+
             BoardWindow.chat_box.handle_event(event = event)
             if not BoardWindow.board_enabled:
                 continue
@@ -265,43 +465,62 @@ while running:
                     hx, hy = hover_pos
                     # 数组行与列是相反的
                     if BoardWindow.board[hy][hx] == 0: # type: ignore
-                        BoardWindow.place_stone(hx,hy)
+                        BoardWindow.place_stone(hx,hy,BoardWindow.this_player)
                         connection.send_move_message(hx,hy,BoardWindow.current_player)
+                        # 完成 move 后立即重置己方时间为初始值
+                        BoardWindow.player_step_time = BoardWindow.step_time
                         has_winner = False
-                        if GameLogic.check_win(BoardWindow.board,hx,hy,BoardWindow.BOARD_SIZE) == 1:
+                        if GameLogic.check_win(BoardWindow.board,hx,hy,BoardWindow.BOARD_SIZE) == BLACK_PLAYER:
                             BoardWindow.winner = BLACK_PLAYER
                             
                             has_winner = True
 
-                        if GameLogic.check_win(BoardWindow.board,hx,hy,BoardWindow.BOARD_SIZE) == 2:
+                        if GameLogic.check_win(BoardWindow.board,hx,hy,BoardWindow.BOARD_SIZE) == WHITE_PLAYER:
                             BoardWindow.winner = WHITE_PLAYER
-                            
                             has_winner = True
-
-                        if GameLogic.check_win(BoardWindow.board,hx,hy,BoardWindow.BOARD_SIZE) == 2:
-                            BoardWindow.winner = WHITE_PLAYER
-                            
+                        if GameLogic.check_win(BoardWindow.board,hx,hy,BoardWindow.BOARD_SIZE) == DRAW:
                             has_winner = True
+                            BoardWindow.winner = DRAW
                         if has_winner:
-                            if BoardWindow.get_this_player() == BoardWindow.winner:
-                                win_sound.play()
+                            pygame.time.set_timer(STEP_TIMER_EVENT, 0)  # 停止定时器
+                            # 计算移动数
+                            moves_count = sum(1 for row in BoardWindow.board for cell in row if cell != 0)
+                            # 确定结果
+                            if BoardWindow.winner == BoardWindow.this_player:
+                                result = "win"
+                            elif BoardWindow.winner == DRAW:
+                                result = "draw"
                             else:
-                                lose_sound.play()
+                                result = "loss"
+                            # 保存游戏数据
+                            save_game_data(result, opponent=connection.opponent_user_id or "Unknown", moves_count=moves_count)
+                            play_win_lose_draw_sound(BoardWindow.this_player,BoardWindow.winner)
                             connection.send_win_message(BoardWindow.winner)
                             BoardWindow.board_enabled = False
                             continue
                         BoardWindow.board_enabled = False
                         BoardWindow.current_player = WHITE_PLAYER if BoardWindow.current_player == BLACK_PLAYER else BLACK_PLAYER
+                        # 重置对方时间并启动倒计时
+                        if BoardWindow.current_player != BoardWindow.this_player:
+                            BoardWindow.opponent_step_time = BoardWindow.step_time
+                        step_timer_trigger = True
                     else:
                         print(f"落子失败: ({hx},{hy}) 已有棋子")
     
-    now_time = int(round(time.time() * 1000))
-    if BoardWindow.step_time <= 0:
-        if BoardWindow.current_player == 1:
-            BoardWindow.winner = WHITE_PLAYER
-        else:
-            BoardWindow.winner = BLACK_PLAYER
-        BoardWindow.board_enabled = False
+    # 移除旧的超时检查，使用新的倒计时逻辑
+
+    # 检查倒计时触发
+    if connection.step_timer_trigger:
+        connection.step_timer_trigger = False
+        start_step_timer()
+    if connection.stop_timer_trigger:
+        connection.stop_timer_trigger = False
+        pygame.time.set_timer(STEP_TIMER_EVENT, 0)
+    if connection.connection_lost and not connection_lost_shown:
+        connection_lost_shown = True
+        myDialog = NotificationDialog(main_screen, title="Connection Lost")
+        myDialog.show("Connection to opponent lost. Click OK to return to main menu.")
+        # 不立即切换 UI，等待 OK
 
     if current_UI == MAIN_UI:
         draw_mainUI()
