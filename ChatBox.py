@@ -39,8 +39,12 @@ class ChatBox:
     def add_message(self, sender, text,timestamp = datetime.datetime.now().strftime("%H:%M:%S")):
         """添加消息"""
         sys_color = (200, 80, 80)
-        prefix = f"[{sender} {timestamp}]"
-        sender_color = (0, 0, 160) if sender == BoardWindow.get_this_player() else (160, 0, 0)
+        sender_str = "Black" if sender == BLACK_PLAYER else "White" if sender == WHITE_PLAYER else "System"
+        prefix = f"[{sender_str} {timestamp}]"
+        if sender == SYSTEM:
+            sender_color = sys_color
+        else:
+            sender_color = (0, 0, 160) if sender == BoardWindow.get_this_player() else (160, 0, 0)
 
         # ✅ 第一行：prefix
         self.messages.append((prefix, sender_color))

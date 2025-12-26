@@ -82,11 +82,12 @@ class Connection:
             msg = json.dumps({"type": "lost_ping"}).encode("utf-8")
             print(self.peer_ip,self.peer_port)
             self.sock.sendto(msg, (self.peer_ip, self.peer_port))
-            threading.Event().wait(1)
+            threading.Event().wait(2)
             if self._peer_ping_lost:
                 lost_count += 1
                 print("lost "+ str(lost_count))
             else:
+                lost_count = 0
                 print("not lost")
             if lost_count >= 3:
                 # Handle lost connection

@@ -135,7 +135,7 @@ while running:
                 if connection.is_connected:
                     myDialog.hide()
                     current_UI = BOARD_UI
-                    game_screen: pygame.Surface = BoardWindow.initialize(BoardWindow.chat_box)
+                    game_screen: pygame.Surface = BoardWindow.initialize(connection=connection)
                     connection.start()
                     continue
                 

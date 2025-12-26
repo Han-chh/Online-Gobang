@@ -48,6 +48,7 @@ def initialize(connection):
     highlight_piece = None
     global chat_box, room_id
     chat_box = ChatBox.ChatBox(x = 640,y=280,width = 200, height = 340,connection=connection)
+    chat_box.add_message(SYSTEM,"Game start")
     return screen
 
 # ---------------- 工具函数 ----------------
