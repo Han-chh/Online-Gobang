@@ -136,7 +136,7 @@ while running:
                     myDialog.hide()
                     current_UI = BOARD_UI
                     game_screen: pygame.Surface = BoardWindow.initialize(BoardWindow.chat_box)
-                    # connection.start()
+                    connection.start()
                     continue
                 
                 if myDialog.title == ROOM_VERIFICATION_TITLE:

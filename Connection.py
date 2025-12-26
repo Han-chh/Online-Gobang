@@ -53,10 +53,15 @@ class Connection:
 
     # Private method to receive messages
     def __receive_message(self, handle_message):
+        self.sock.settimeout(None)
         while self.is_connected:
             data, addr = self.sock.recvfrom(1024)
-            message = json.loads(data.decode("utf-8"))
-            handle_message(message)
+            try:
+                message = json.loads(data.decode("utf-8"))
+                handle_message(message)
+            except json.JSONDecodeError:
+                continue
+            
         thread_done_notification()
         return
     
@@ -79,6 +84,9 @@ class Connection:
             threading.Event().wait(10)
             if self._peer_ping_lost:
                 lost_count += 1
+                print("lost "+ lost_count)
+            else:
+                print("not lost")
             if lost_count >= 3:
                 # Handle lost connection
                 print("lost connection")
@@ -246,7 +254,7 @@ class Connection:
                 response = json.loads(data.decode("utf-8"))
             except json.JSONDecodeError:
                 continue
-            if response.get("type") == "room_host_response" and response.get("room_id") == room_id:
+            if response.get("type") == "room_host_response":
                 self.peer_ip = response.get("host_ip")
                 self.peer_port = response.get("host_ports")
                 self.sock.settimeout(None)  # Remove timeout
