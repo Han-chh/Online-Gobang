@@ -120,6 +120,7 @@ while running:
 
             elif current_UI == BOARD_UI:
                 current_UI = MAIN_UI
+                connection.disconnect()
                 connection_flag = False
                 initialize_mainUI()
             break

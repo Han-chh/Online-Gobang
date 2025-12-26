@@ -40,6 +40,8 @@ class Connection:
         self.is_timeout = False
         self.has_existing_room = False
 
+    def disconnect(self):
+        self.is_connected = False
     # Send a message to the peer connected
     def send_message(self, message):
         data = json.dumps(message).encode("utf-8")
@@ -51,10 +53,12 @@ class Connection:
 
     # Private method to receive messages
     def __receive_message(self, handle_message):
-        while True:
+        while self.is_connected:
             data, addr = self.sock.recvfrom(1024)
             message = json.loads(data.decode("utf-8"))
             handle_message(message)
+        thread_done_notification()
+        return
     
     # Start a thread to detect lost connection
     def lost_detection_start(self):
@@ -66,8 +70,9 @@ class Connection:
     # ping the peer every 10 seconds
     # if no response for 3 times, consider the peer lost
     def __lost_detection(self):
+
         lost_count = 0
-        while True:
+        while self.is_connected:
             self._peer_ping_lost = True
             msg = json.dumps({"type": "lost_ping"}).encode("utf-8")
             self.sock.sendto(msg, (self.peer_ip, self.peer_port))
@@ -76,7 +81,10 @@ class Connection:
                 lost_count += 1
             if lost_count >= 3:
                 # Handle lost connection
+                print("lost connection")
                 pass
+        thread_done_notification()
+        return
 
     # Private method to get local IP address
     def get_local_ip(self):
@@ -170,7 +178,7 @@ class Connection:
                 data, addr = self.sock.recvfrom(1024)
                 response = json.loads(data.decode("utf-8"))
                 print(response)
-                if response.get("type") == "join_room" and response.get("room_id") == room_id:
+                if response.get("type") == "join_room":
                     self.peer_ip = response.get("ip")
                     self.peer_port = response.get("port")
                     self.sock.sendto(json.dumps({
