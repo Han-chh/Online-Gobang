@@ -89,6 +89,7 @@ JOIN_LOADING_DIALOG_TITLE = "Joining Room"
 WAITING_DIALOG_TITLE = f"Room {BoardWindow.room_id}"
 CREATE_ROOM_FAILED_DIALOG_TITLE = "Invalid Room Settings"
 ROOM_VERIFICATION_TITLE = "Room Verification"
+CONNECTION_LOST_TITLE = "Connection Lost"
 
 
 # UI constants
@@ -242,6 +243,8 @@ def set_buttons_enabled(buttons, enabled):
 def draw_mainUI():
     # 更新鼠标位置（在事件循环外）
     MOUSE_POS = pygame.mouse.get_pos()
+    global connection_lost_shown
+    connection_lost_shown = False
     # --- 绘制界面 ---
     main_screen.fill(DARK_WOOD)  # background base color
     pygame.draw.rect(main_screen, LIGHT_WOOD, (50, 50, 700, 500), border_radius=25)  # main panel
@@ -284,13 +287,15 @@ while running:
                 running = False
 
             elif current_UI == BOARD_UI:
+                myDialog.hide()
                 current_UI = MAIN_UI
                 connection.disconnect()
+                connection.connection_lost = False
+                connection_lost_shown = False
                 connection_flag = False
                 initialize_mainUI()
             break
         if current_UI == MAIN_UI:
-            
 
             # 如果对话框可见，优先处理对话框事件
             if myDialog.visible:
@@ -368,18 +373,9 @@ while running:
                         myDialog = LoadingDialog(main_screen, title=ROOM_VERIFICATION_TITLE)
                         myDialog.show("Verifing your room...")
                         connection.existing_room_detection(room_id=BoardWindow.room_id)
-                        
                     if myDialog.visible:
                         continue
                     print("用户点击了确定")
-
-                elif result == "OK":
-                    if connection_lost_shown:
-                        current_UI = MAIN_UI
-                        connection.disconnect()
-                        connection_lost_shown = False
-                        myDialog.hide()
-                        continue
 
                 elif result == "CANCEL":
                     if myDialog.title == JOIN_LOADING_DIALOG_TITLE or myDialog.title == WAITING_DIALOG_TITLE or ROOM_VERIFICATION_TITLE:
@@ -425,6 +421,16 @@ while running:
                         for s in all_sounds:
                             s.set_volume(0.5)
         elif current_UI == BOARD_UI:
+            # 处理连接丢失对话框事件
+            if myDialog.visible and myDialog.title == CONNECTION_LOST_TITLE:
+                    result = myDialog.handle_event(event)
+                    if result == "OK":
+                        connection.disconnect()
+                        connection.connection_lost = False
+                        connection_lost_shown = False
+                        myDialog.hide()
+                        current_UI = MAIN_UI
+                        main_screen = initialize_mainUI()
 
             # 添加：处理倒计时事件
             if event.type == STEP_TIMER_EVENT:
@@ -517,8 +523,10 @@ while running:
         connection.stop_timer_trigger = False
         pygame.time.set_timer(STEP_TIMER_EVENT, 0)
     if connection.connection_lost and not connection_lost_shown:
+        print("connection lost")
         connection_lost_shown = True
-        myDialog = NotificationDialog(main_screen, title="Connection Lost")
+        myDialog = NotificationDialog(main_screen, title=CONNECTION_LOST_TITLE)
+        myDialog.draw()
         myDialog.show("Connection to opponent lost. Click OK to return to main menu.")
         # 不立即切换 UI，等待 OK
 
@@ -526,6 +534,8 @@ while running:
         draw_mainUI()
     elif current_UI == BOARD_UI:
         BoardWindow.draw_board(game_screen,chat_box=BoardWindow.chat_box,hover_pos=hover_pos) # type: ignore
+        myDialog.draw()
+        pygame.display.flip()
 
 
 

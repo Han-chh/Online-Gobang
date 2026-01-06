@@ -532,7 +532,6 @@ class NotificationDialog(Dialog):
     def draw(self):
         if not self.visible:
             return
-
         # 半透明遮罩
         overlay = pygame.Surface(self.base_surface.get_size(), pygame.SRCALPHA)
         overlay.fill(DARK_GRAY)
