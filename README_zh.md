@@ -10,9 +10,9 @@
 
 ## 演示
 
-![展示创建房间、同步落子、聊天和完整对局的 Online Gobang 双端动态演示](assets/visual-demos/online-gobang.gif)
+[![展示创建房间、同步落子、聊天和完整对局的 Online Gobang 双端动态演示](assets/visual-demos/online-gobang.gif)](https://han-chh.github.io/Online-Gobang/demo.html)
 
-[查看高清 MP4 演示](assets/visual-demos/online-gobang.mp4)
+[▶ 在线观看完整演示](https://han-chh.github.io/Online-Gobang/demo.html)
 
 录屏展示两个运行中的对等端创建房间、同步落子与聊天，并完成一局游戏。
 

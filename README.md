@@ -10,9 +10,9 @@ The application presents a custom Pygame interface for creating or joining a LAN
 
 ## Demo
 
-![Animated two-player Online Gobang walkthrough showing room creation, synchronized moves, chat, and a completed game](assets/visual-demos/online-gobang.gif)
+[![Animated two-player Online Gobang walkthrough showing room creation, synchronized moves, chat, and a completed game](assets/visual-demos/online-gobang.gif)](https://han-chh.github.io/Online-Gobang/demo.html)
 
-[Full-resolution MP4 demo](assets/visual-demos/online-gobang.mp4)
+[▶ Watch the full demo online](https://han-chh.github.io/Online-Gobang/demo.html)
 
 The recording shows two running peers creating a room, synchronizing moves and chat, and completing a game.
 
